@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import requests
-from bs4 import BeautifulSoup
 import re
 from prettytable import PrettyTable
+
+
 
 white = '\033[1;97m'
 green = '\033[1;32m'
@@ -66,7 +67,7 @@ def check_url(url):
 #############
 def format_url(url, query, pageno):
 
-    return '%s/search?q=%s&pageno=%s&time_range=year&format=json' % (url, query, pageno)
+    return '%s/?q=%s&pageno=%s&categories=general&language=en-US&format=json' % (url, query, pageno)
 
 ###############
 # Check Server
@@ -99,19 +100,32 @@ def term_search(query = None, numberPages = None):
         if not query:
             print '\n%s Please Enter a Query' % bad
             term_search(None, numberPages)
-    url = format_url(url, query, numberPages)
 
-    return url
+    urls = []
+
+    for number in range(1,int(numberPages)+1):
+        urls.append(format_url(url, query, number))
+
+    return urls
 
 ########
 # SearX 
 ########
 
 def searx(url):
-
+    headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Connection': 'keep-alive',
+        'Cookie': 'session_id=014a6858fbe053381e9ccfaf3942ed2ba33a5855; autocomplete=; safesearch=0; theme=oscar; results_on_new_tab=0; doi_resolver=oadoi.org; language=en-US; locale=en; image_proxy=; categories=general; method=POST; disabled_engines=; enabled_engines="yandex__general\054duckduckgo__general\054yahoo__general"; disabled_plugins=; enabled_plugins=; oscar-style=logicodev; redux_current_tab=1; redux_current_tab_get=1',
+        'Host': 'localhost:8888',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0',
+    }
     print "\n%s Starting Searx...\n" % run
 
-    urlRequest = requests.get(url)
+    urlRequest = requests.get(url, headers=headers)
     data = urlRequest.json()
 
     print '%s %s Entries found' % (good, str(len(data['results'])))
@@ -137,6 +151,8 @@ def sqli_scanner(urls, payloads='plugins/sqli.txt'):
             engine = "%s [%s]" %(green, page['engine'])
         elif page['engine'] == 'bing':
             engine = "%s [%s]" %(yellow, page['engine'])
+        else:
+            engine = "%s [%s]" % (white, page['engine'])
 
         for payload in payloads:
             try:
@@ -161,12 +177,13 @@ def sqli_scanner(urls, payloads='plugins/sqli.txt'):
 
     for site in sitesVuln:
         if saveEntries == 'yes' or saveEntries == 'YES':
-            file.write(site[0] + '\n')
+            with open(fileToSave) as myfile:
+                if not site[0] in myfile.read():
+                    file.write(site[0] + '\n')
 
         table.add_row([site[0], site[1], site[2]])
-
+    file.close()
     print table
-
 
 
 
@@ -186,7 +203,9 @@ def sqli_errors_check(html):
     return False, None
 
 def initiator():
-    url = term_search()
-    searx(url)
+    urls = term_search()
+    print urls
+    for url in urls:
+        searx(url)
 
 initiator()
